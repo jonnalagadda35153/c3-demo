@@ -22,5 +22,5 @@ resource "aws_s3_bucket_policy" "weak" {
     "Resource": "arn:aws:s3:::ow-c3-demo-bucket-jaswanth/*"
   }]
 }
-POLICY
+POLICYtest
 }
