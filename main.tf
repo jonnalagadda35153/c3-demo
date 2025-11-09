@@ -9,7 +9,7 @@ resource "aws_s3_bucket" "demo" {
   acl    = "public-read"
 }
 
-resource "aws_s3_bucket_policy" "weak" {
+resource "aws_s3_bucket_policy" "bad" {
   bucket = aws_s3_bucket.demo.id
   policy = <<POLICY
 {
