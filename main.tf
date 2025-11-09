@@ -22,5 +22,5 @@ resource "aws_s3_bucket_policy" "bad" {
     "Resource": "arn:aws:s3:::ow-c3-demo-bucket-jaswanth/*"
   }]
 }
-POLICYtest
+POLICY
 }
