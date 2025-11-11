@@ -4,11 +4,8 @@ terraform {
   }
 }
 
-<<<<<<< HEAD
-=======
 adding bad notes here
 
->>>>>>> a8847d8 (Testing multiple tf files n8n)
 provider "aws" {
   region = "us-east-1"
   # Use AWS profile or assume-role (no credentials in code)
