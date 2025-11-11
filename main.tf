@@ -4,8 +4,6 @@ terraform {
   }
 }
 
-adding bad syntax here
-
 provider "aws" {
   region = "us-east-1"
   # Use AWS profile or assume-role (no credentials in code)
