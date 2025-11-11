@@ -1,0 +1,415 @@
+{
+    "name": "Manual LLM Fix & PR (Stage-1)",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "1",
+            "name": "Manual Trigger",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                0,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "keepOnlySet": true,
+                "values": {
+                    "string": [
+                        {
+                            "name": "owner",
+                            "value": "<your-github-owner>"
+                        },
+                        {
+                            "name": "repo",
+                            "value": "<your-repo>"
+                        },
+                        {
+                            "name": "base_branch",
+                            "value": "demo-branch"
+                        },
+                        {
+                            "name": "file_path",
+                            "value": "main.tf"
+                        }
+                    ]
+                }
+            },
+            "id": "2",
+            "name": "Config (owner/repo/branch/path)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                260,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "githubApi",
+                "options": {
+                    "response": "json"
+                },
+                "url": "={{'https://api.github.com/repos/' + $json.owner + '/' + $json.repo + '/contents/' + $json.file_path + '?ref=' + $json.base_branch}}",
+                "method": "GET"
+            },
+            "id": "3",
+            "name": "GitHub GET file (contents API)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                520,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "const content = $json.content;\nif (!content) throw new Error('No content from GitHub. Check path/branch/credentials.');\nconst buf = Buffer.from(content, 'base64');\nreturn [{ original: buf.toString('utf8'), sha_on_base: $json.sha }];"
+            },
+            "id": "4",
+            "name": "Decode base64 → text",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 2,
+            "position": [
+                780,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "chat",
+                "operation": "chat",
+                "model": "gpt-4o-mini",
+                "systemMessage": "You are a precise Terraform/HCL fixer. You must do three things:\n1) Validate the provided file strictly for HCL syntax and obvious Terraform mistakes (unclosed braces, wrong '=' alignment, missing commas in maps, misplaced blocks).\n2) If NO change is needed, respond exactly with:\n   STATUS: OK\n3) If changes are needed, respond only with:\n   STATUS: CHANGES\n   ---DIFF---\n   diff --git a/main.tf b/main.tf\n   <unified diff with @@ hunks replacing only what's wrong>\n   ---FULL-FILE---\n   <the entire corrected file content verbatim>\n   ---END---\nDo not include any commentary outside these blocks.",
+                "messages": [
+                    {
+                        "text": "FILE (main.tf):\n{{$json.original}}",
+                        "type": "user"
+                    }
+                ]
+            },
+            "id": "5",
+            "name": "OpenAI (fix/check)",
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 4,
+            "position": [
+                1040,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.data || $json.text || ''}}",
+                            "operation": "contains",
+                            "value2": "STATUS: CHANGES"
+                        }
+                    ]
+                }
+            },
+            "id": "6",
+            "name": "IF changes?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1300,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "const out = $json.data || $json.text || '';\nconst partDiff = (out.split('---DIFF---')[1] || '').split('---FULL-FILE---')[0]?.trim() || '';\nconst partFull = (out.split('---FULL-FILE---')[1] || '').split('---END---')[0] || '';\nif (!partFull.trim()) { throw new Error('No FULL-FILE block found from model.'); }\nreturn [{ diff_text: partDiff, fixed_full_file: partFull }];"
+            },
+            "id": "7",
+            "name": "Parse LLM blocks",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 2,
+            "position": [
+                1560,
+                -120
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "githubApi",
+                "options": {
+                    "response": "json"
+                },
+                "url": "={{'https://api.github.com/repos/' + $json.owner + '/' + $json.repo + '/git/refs/heads/' + $json.base_branch}}",
+                "method": "GET"
+            },
+            "id": "8",
+            "name": "GitHub GET branch ref",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                1820,
+                -120
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "const sha = $json.object?.sha || $json.sha;\nif (!sha) throw new Error('No base branch SHA found.');\nconst newBranch = 'auto-fix-' + sha.slice(0,7);\nreturn [{ baseCommitSha: sha, new_branch: newBranch }];"
+            },
+            "id": "9",
+            "name": "Make new branch name",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 2,
+            "position": [
+                2080,
+                -120
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "githubApi",
+                "options": {
+                    "response": "json"
+                },
+                "url": "=https://api.github.com/repos/{{$json.owner}}/{{$json.repo}}/git/refs",
+                "method": "POST",
+                "sendBody": true,
+                "jsonParameters": true,
+                "bodyParametersJson": "={\n  \"ref\": \"refs/heads/{{$json.new_branch}}\",\n  \"sha\": \"{{$json.baseCommitSha}}\"\n}"
+            },
+            "id": "10",
+            "name": "GitHub POST /git/refs (create branch)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                2340,
+                -120
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "return [{ content_b64: Buffer.from($json.fixed_full_file).toString('base64') }];"
+            },
+            "id": "11",
+            "name": "Encode fixed → base64",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 2,
+            "position": [
+                2600,
+                -120
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "githubApi",
+                "options": {
+                    "response": "json"
+                },
+                "url": "=https://api.github.com/repos/{{$json.owner}}/{{$json.repo}}/contents/{{$json.file_path}}",
+                "method": "PUT",
+                "sendBody": true,
+                "jsonParameters": true,
+                "bodyParametersJson": "={\n  \"message\": \"chore(terraform): auto-fix syntax in main.tf (n8n)\",\n  \"content\": \"{{$json.content_b64}}\",\n  \"branch\": \"{{$json.new_branch}}\"\n}"
+            },
+            "id": "12",
+            "name": "GitHub PUT /contents (commit file)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                2860,
+                -120
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "githubApi",
+                "options": {
+                    "response": "json"
+                },
+                "url": "=https://api.github.com/repos/{{$json.owner}}/{{$json.repo}}/pulls",
+                "method": "POST",
+                "sendBody": true,
+                "jsonParameters": true,
+                "bodyParametersJson": "={\n  \"title\": \"Auto-fix Terraform syntax for main.tf (via n8n)\",\n  \"head\": \"{{$json.new_branch}}\",\n  \"base\": \"{{$json.base_branch}}\",\n  \"body\": \"This PR was created automatically by the n8n Compliance Copilot.\n\n**Proposed change (unified diff):**\n\n```diff\n{{$json.diff_text}}\n```\"\n}"
+            },
+            "id": "13",
+            "name": "GitHub POST /pulls (create PR)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                3120,
+                -120
+            ]
+        },
+        {
+            "parameters": {
+                "keepOnlySet": true,
+                "values": {
+                    "string": [
+                        {
+                            "name": "status",
+                            "value": "OK - no changes required."
+                        }
+                    ]
+                }
+            },
+            "id": "14",
+            "name": "Set (OK message)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                1560,
+                160
+            ]
+        }
+    ],
+    "connections": {
+        "Manual Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Config (owner/repo/branch/path)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Config (owner/repo/branch/path)": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub GET file (contents API)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub GET file (contents API)": {
+            "main": [
+                [
+                    {
+                        "node": "Decode base64 → text",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Decode base64 → text": {
+            "main": [
+                [
+                    {
+                        "node": "OpenAI (fix/check)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI (fix/check)": {
+            "main": [
+                [
+                    {
+                        "node": "IF changes?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF changes?": {
+            "main": [
+                [
+                    {
+                        "node": "Parse LLM blocks",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Set (OK message)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse LLM blocks": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub GET branch ref",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub GET branch ref": {
+            "main": [
+                [
+                    {
+                        "node": "Make new branch name",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Make new branch name": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub POST /git/refs (create branch)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub POST /git/refs (create branch)": {
+            "main": [
+                [
+                    {
+                        "node": "Encode fixed → base64",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Encode fixed → base64": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub PUT /contents (commit file)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub PUT /contents (commit file)": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub POST /pulls (create PR)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {},
+    "staticData": {},
+    "meta": {},
+    "version": 2
+}
