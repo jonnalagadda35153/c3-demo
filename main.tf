@@ -1,26 +1,50 @@
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", version = ">= 5.0, < 6.0" }
+  }
+}
+
+# Use AWS profile or assume-role (no credentials in code)
 provider "aws" {
-  region     = "us-east-1"
-  access_key = "AKIAFAKEACCESSKEY1234"
-  secret_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYFAKESECRET"
+  region = "us-east-1"
 }
 
 resource "aws_s3_bucket" "demo" {
   bucket = "ow-c3-demo-bucket-jaswanth"
-  acl    = "public-read"
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  lifecycle_rule {
+    id      = "expire-old-objects"
+    enabled = true
+
+    expiration {
+      days = 365
+    }
+  }
+
+  tags = {
+    Name        = "ow-c3-demo-bucket-jaswanth"
+    Environment = "dev"
+  }
 }
 
-resource "aws_s3_bucket_policy" "bad" {
+resource "aws_s3_bucket_public_access_block" "demo" {
   bucket = aws_s3_bucket.demo.id
-  policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Sid": "PublicRead",
-    "Effect": "Allow",
-    "Principal": "*",
-    "Action": ["s3:GetObject"],
-    "Resource": "arn:aws:s3:::ow-c3-demo-bucket-jaswanth/*"
-  }]
-}
-POLICY test
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
