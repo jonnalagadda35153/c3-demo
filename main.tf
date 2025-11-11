@@ -5,7 +5,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-112"
+  region = "us-east-1"
   # Use AWS profile or assume-role (no credentials in code)
 }
 
@@ -20,7 +20,7 @@ resource "aws_s3_bucket" "demo" {
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
-        sse_algorithm = "asfasdfasdf"
+        sse_algorithm = "AES256"
       }
     }
   }
