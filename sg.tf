@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-112"
   # Use AWS profile or assume-role (no credentials in code)
 }
 
