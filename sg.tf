@@ -22,20 +22,29 @@ resource "aws_security_group" "wide_open" {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # TODO: narrow this CIDR to specific IPs or VPC ranges
+    # TODO: narrow this CIDR to specific IPs, VPC ranges, or security group references
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+  # Restrict egress to common required ports instead of allowing all outbound traffic.
+  # TODO: further restrict destination CIDRs if possible.
+  egress {
+    description = "Allow outbound HTTPS (TODO: restrict egress if not necessary)"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    description = "Allow all outbound traffic (TODO: restrict egress if not necessary)"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow outbound HTTP (TODO: restrict egress if not necessary)"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
     Name = "demo-wide-open"
   }
-
-
-  
+}
