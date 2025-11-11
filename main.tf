@@ -4,7 +4,7 @@ terraform {
   }
 }
 
-adding bad syntax 
+adding bad syntax here
 
 provider "aws" {
   region = "us-east-1"
