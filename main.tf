@@ -9,6 +9,8 @@ provider "aws" {
   # Use AWS profile or assume-role (no credentials in code)
 }
 
+bad syntax here
+
 resource "aws_s3_bucket" "demo" {
   bucket = "ow-c3-demo-bucket-jaswanth"
   acl    = "private"
@@ -42,8 +44,8 @@ resource "aws_s3_bucket" "demo" {
 resource "aws_s3_bucket_public_access_block" "demo" {
   bucket = aws_s3_bucket.demo.id
 
-  block_public_acls       = true
+  block_public_acls       = false
   ignore_public_acls      = true
-  block_public_policy     = true
+  block_public_policy     = false
   restrict_public_buckets = true
 }
