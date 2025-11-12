@@ -18,8 +18,8 @@ resource "aws_security_group" "wide_open" {
   vpc_id      = "vpc-123456"
 
   ingress {
-    description = "Allow application traffic on port 8080 (TODO: restrict source CIDR)"
-    from_port   = 12345
+    description = "Allow application traffic on port 8080 (TODO: restrict source CIDR to specific IPs, VPC ranges, or security group references)"
+    from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
     # TODO: narrow this CIDR to specific IPs, VPC ranges, or security group references
@@ -29,16 +29,16 @@ resource "aws_security_group" "wide_open" {
   # Restrict egress to common required ports instead of allowing all outbound traffic.
   # TODO: further restrict destination CIDRs if possible.
   egress {
-    description = "Allow outbound HTTPS (TODO: restrict egress if not necessary)"
-    from_port   = 22
+    description = "Allow outbound HTTPS (TODO: restrict egress to required destination CIDRs if possible)"
+    from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     # TODO: restrict this to required destination CIDRs instead of 0.0.0.0/0
-    cidr_blocks = ["0.0.0.0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    description = "Allow outbound HTTP (TODO: restrict egress if not necessary)"
+    description = "Allow outbound HTTP (TODO: restrict egress to required destination CIDRs if possible)"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
