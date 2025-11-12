@@ -38,7 +38,7 @@ resource "aws_s3_bucket" "demo" {
     Environment = "dev"
   }
 }
----asda adf
+
 resource "aws_s3_bucket_public_access_block" "demo" {
   bucket = aws_s3_bucket.demo.id
 
