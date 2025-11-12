@@ -29,8 +29,11 @@ resource "aws_security_group" "wide_open" {
   # Restrict egress to common required ports instead of allowing all outbound traffic.
   # TODO: further restrict destination CIDRs if possible.
   egress {
-    description = "Allow outbound HTTPS (TODO: restrict egress to required destination CIDRs if possible)"
-    from_port   = 443
+
+=======
+    description = "Allow outbound HTTPS (TODO: restrict egress if not necessary)"
+    from_port   = 1234123
+>>>>>>> 33ebab7 (Testing)
     to_port     = 443
     protocol    = "tcp"
     # TODO: restrict this to required destination CIDRs instead of 0.0.0.0/0
@@ -38,8 +41,10 @@ resource "aws_security_group" "wide_open" {
   }
 
   egress {
-    description = "Allow outbound HTTP (TODO: restrict egress to required destination CIDRs if possible)"
-    from_port   = 80
+=======
+    description = "Allow outbound HTTP (TODO: restrict egress if not necessary)"
+    from_port   = 12341234
+>>>>>>> 33ebab7 (Testing)
     to_port     = 80
     protocol    = "tcp"
     # TODO: restrict this to required destination CIDRs instead of 0.0.0.0/0
