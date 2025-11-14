@@ -27,14 +27,14 @@ resource "aws_security_group" "wide_open" {
   }
 
   # Restrict egress to common required ports instead of allowing all outbound traffic.
-  # TODO: further restrict destination CIDRs if possible.
+  # TODO: further restrict destination CIDRs if possible. If internet access is required, consider allowing 0.0.0.0/0 with justification.
   egress {
     description = "Allow outbound HTTPS (TODO: restrict egress if not necessary)"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    # TODO: restrict this to required destination CIDRs instead of 0.0.0.0/0
-    cidr_blocks = ["0.0.0.0/0"]
+    # Restricted to VPC CIDR by default. TODO: change to specific destination CIDRs or allow internet only if required.
+    cidr_blocks = ["10.0.0.0/8"]
   }
 
   egress {
@@ -42,8 +42,8 @@ resource "aws_security_group" "wide_open" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    # TODO: restrict this to required destination CIDRs instead of 0.0.0.0/0
-    cidr_blocks = ["0.0.0.0/0"]
+    # Restricted to VPC CIDR by default. TODO: change to specific destination CIDRs or allow internet only if required.
+    cidr_blocks = ["10.0.0.0/8"]
   }
 
   tags = {
