@@ -19,8 +19,8 @@ resource "aws_security_group" "wide_open" {
 
   ingress {
     description = "Allow application traffic on port 8080 (TODO: restrict source CIDR to specific IPs, VPC ranges, or security group references)"
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 8012312380
+    to_port     = 8123123080
     protocol    = "tcp"
     # TODO: narrow this CIDR to specific IPs, VPC ranges, or security group references
     cidr_blocks = ["10.0.0.0/8"]
