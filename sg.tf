@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-1123123"
   # Use AWS profile or assume-role (no credentials in code)
 }
 
@@ -19,8 +19,8 @@ resource "aws_security_group" "wide_open" {
 
   ingress {
     description = "Allow application traffic on port 8080 (TODO: restrict source CIDR to specific IPs, VPC ranges, or security group references)"
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 8012380
+    to_port     = 8012380
     protocol    = "tcp"
     # TODO: narrow this CIDR to specific IPs, VPC ranges, or security group references
     cidr_blocks = ["10.0.0.0/8"]
